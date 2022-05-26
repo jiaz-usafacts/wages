@@ -66,7 +66,11 @@
 	text-align:center;
 	cursor:pointer;
 }
+#quarterControl{
+	font-size:12px;
 	
+}	
+
 </style>
 <!-- Create an element where the map will take place -->
 <div id="info">
@@ -81,6 +85,7 @@
 	</div>
 	
 </div>
+<div id="ranking">Your county</div>
 
 <div id="popup"></div>
 <div id="charts">
@@ -89,9 +94,9 @@
 	<div class="quarter" id="q3"></div>
 </div>
 <script>
-	d3.select("#q1").style("display","block")
+	d3.select("#q1").style("display","none")
 	d3.select("#q2").style("display","none")
-	d3.select("#q3").style("display","none")
+	d3.select("#q3").style("display","block")
 	d3.select("#q1Button").style("background-color","#eee")
 	
 d3.select("#q1Button").on("click",function(){
@@ -159,6 +164,12 @@ function getMapFips(mapData){
 		geoids.push(mapData.features[i].properties["GEO_ID"].split("US")[1])
 	}
 	//console.log(geoids)
+}
+
+function rankCounty(countyFips,data){
+	
+	var stateFips = countyFips.slice(0,2)
+//	console.log(stateFips)
 }
 
 function drawScatter(mapData,data,divName){
@@ -242,7 +253,10 @@ function drawScatter(mapData,data,divName){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		var popupString = county+" County, "+stateName
 		
+		rankCounty(fips,data)
+		
 		var state = "state_"+d.properties["STATE"]
+		
 		
 		d3.selectAll(".countyDot").attr("opacity",0)
 		d3.selectAll(".dot_"+state).attr("opacity",.5)
@@ -267,13 +281,13 @@ function drawScatter(mapData,data,divName){
 		d3.selectAll("#_"+fips).attr("stroke-opacity",1)
 		
 		
-		d3.select("#stateLabel")
+		d3.selectAll("#stateLabel")
 		.text("Counties in "+numberToState[state.replace("state_","")])
 		
 		d3.selectAll("#"+state).attr("stroke-opacity",.2)
 	})
 	.on("mouseout",function(e,d){
-		d3.select("#stateLabel").text("All counties")
+		d3.selectAll("#stateLabel").text("All counties")
 		d3.selectAll(".countyPath").attr("stroke-opacity",0)
 		d3.selectAll(".countyDot").attr("opacity",1)
 		d3.select("#popup").style("display","none")
@@ -379,7 +393,7 @@ function drawMap(data, mapData,divName,stateMapData){
 		
 		var state = "state_"+d.properties["STATE"]
 		
-		d3.select("#stateLabel").text("Counties in "+stateName)
+		d3.selectAll("#stateLabel").text("Counties in "+stateName)
 
 		
 		if(data[fips]!=undefined){
@@ -417,7 +431,7 @@ function drawMap(data, mapData,divName,stateMapData){
 		
 		d3.selectAll(".statePath").attr("stroke-opacity",0)
 		d3.select("#popup").style("display","none")
-		d3.select("#stateLabel").text("All counties")
+		d3.selectAll("#stateLabel").text("All counties")
 		
 	})
 	
