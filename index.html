@@ -167,9 +167,26 @@ function getMapFips(mapData){
 }
 
 function rankCounty(countyFips,data){
-	
+	//console.log("ranking")
 	var stateFips = countyFips.slice(0,2)
-//	console.log(stateFips)
+	//console.log(data)
+	
+	var countiesInState = Object.keys(data).filter( function( el ) {
+		var elState = el.slice(0,2)
+		if(elState == stateFips){
+			return el
+		}
+	 // return !toRemove.includes( el );
+	} );
+	
+	var sortedCounties = countiesInState.sort(function(a,b){
+		return parseFloat(data[b]["oty_avg_wkly_wage_pct_chg"])-parseFloat(data[a]["oty_avg_wkly_wage_pct_chg"])
+	})
+	var countyIndex = sortedCounties.indexOf(countyFips)
+	// console.log(countyIndex)
+// 	console.log(sortedCounties.length)
+	
+	return "Ranking within state: "+(countyIndex+1)+" out of "+sortedCounties.length
 }
 
 function drawScatter(mapData,data,divName){
@@ -253,7 +270,7 @@ function drawScatter(mapData,data,divName){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		var popupString = county+" County, "+stateName
 		
-		rankCounty(fips,data)
+		var rankingText = rankCounty(fips,data)
 		
 		var state = "state_"+d.properties["STATE"]
 		
@@ -269,6 +286,7 @@ function drawScatter(mapData,data,divName){
 			popupString+="<br>$ Average Weekly Wage: "+aww
 			+"<br>$ Change: "+awwChg
 			+"<br> % Change: "+awwPctChg+"%"
+			+"<br><strong>"+rankingText+"</strong>"
 		}
 		
 	    var posX = e.clientX;
@@ -393,6 +411,8 @@ function drawMap(data, mapData,divName,stateMapData){
 		
 		var state = "state_"+d.properties["STATE"]
 		
+		var rankingText = rankCounty(fips,data)
+		
 		d3.selectAll("#stateLabel").text("Counties in "+stateName)
 
 		
@@ -403,6 +423,7 @@ function drawMap(data, mapData,divName,stateMapData){
 			popupString+="<br>$ Average Weekly Wage: "+aww
 			+"<br>$ Change: "+awwChg
 			+"<br> % Change: "+awwPctChg+"%"
+			+"<br><strong>"+rankingText+"</strong>"
 			
 		}
 		
