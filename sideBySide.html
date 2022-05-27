@@ -56,7 +56,8 @@
 	font-size:12px;
 }
 .quarter{
-	width:800px;
+	width:400px;
+	display:inline-block;
 }
 .qButton{
 	display:inline-block;
@@ -74,15 +75,11 @@
 </style>
 <!-- Create an element where the map will take place -->
 <div id="info">
-	QCEW data / BLS / <strong>% change in average weekly wages by quarter</strong>
+	QCEW data / BLS / <strong>% change in average weekly wages by quarter</strong> All Industry/Size/Ownership
 	<div id="key">
 		-25% <div id="grad">0%</div> +25%
 	</div>
-	<div id="quarterControl">Quarters:
-		<div class="qButton" id="q1Button">Q1</div>
-		<div class="qButton" id="q2Button">Q2</div>
-		<div class="qButton" id="q3Button">Q3</div>
-	</div>
+
 	
 </div>
 <div id="ranking">Your county</div>
@@ -94,35 +91,7 @@
 	<div class="quarter" id="q3"></div>
 </div>
 <script>
-	d3.select("#q1").style("display","block")
-	d3.select("#q2").style("display","none")
-	d3.select("#q3").style("display","none")
-	d3.select("#q1Button").style("background-color","#eee")
 	
-d3.select("#q1Button").on("click",function(){
-	//console.log("click")
-	d3.selectAll(".qButton").style("background-color","#fff")
-	d3.select(this).style("background-color","#eee")
-	d3.select("#q1").style("display","block")
-	d3.select("#q2").style("display","none")
-	d3.select("#q3").style("display","none")
-})
-d3.select("#q2Button").on("click",function(){
-	d3.selectAll(".qButton").style("background-color","#fff")
-	d3.select(this).style("background-color","#eee")
-	//console.log("click")
-	d3.select("#q1").style("display","none")
-	d3.select("#q2").style("display","block")
-	d3.select("#q3").style("display","none")
-})
-d3.select("#q3Button").on("click",function(){
-	d3.selectAll(".qButton").style("background-color","#fff")
-	d3.select(this).style("background-color","#eee")
-	//console.log("click")
-	d3.select("#q1").style("display","none")
-	d3.select("#q2").style("display","none")
-	d3.select("#q3").style("display","block")
-})
 
 	var geoidsInMap;
 	
@@ -190,7 +159,7 @@ function rankCounty(countyFips,data){
 }
 
 function drawScatter(mapData,data,divName){
-	var w = 1000
+	var w = 400
 	var h = 300
 	var p = 50
 	var yScale = d3.scaleLinear().domain([-25,25]).range([h-p*2,0])
@@ -334,8 +303,8 @@ function drawMap(data, mapData,divName,stateMapData){
 	
 	//console.log(stateMapData)
 	
-	  var w = 1000
-	  var h = 450
+	  var w = 400
+	  var h = 300
 	const svg = d3.select("#"+divName).append("svg")
 	  .attr("width",w)
 	  .attr("height",h)
@@ -367,7 +336,7 @@ function drawMap(data, mapData,divName,stateMapData){
 //	console.log(minDif)
 
 	//var difScale = d3.scaleLinear().domain([minDif,0,maxDif]).range(["magenta","#fff","cyan"])
-	var difScale = d3.scaleLinear().domain([-25,0,25]).range(["magenta","#fff","cyan"])
+	var difScale = d3.scaleLinear().domain([-25,1.07,25]).range(["magenta","#fff","cyan"])
 
 	
   svg.append("g")
