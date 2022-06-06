@@ -58,7 +58,7 @@
 	font-size:12px;
 }
 .quarter{
-	width:400px;
+	width:800px;
 	display:inline-block;
 }
 .qButton{
@@ -80,9 +80,12 @@
 }
 #buttons{
 	width:300px;
-	position:absolute;
+	position:fixed;
 	top:80px;
 	left:0px;
+	border-right:1px solid black;
+	height:100%;
+	overflow:auto;
 }
 .iButton{
 	font-size:12px;
@@ -100,14 +103,12 @@
 <div id="info">
 	QCEW data / BLS / % change in average weekly wages by quarter / <strong>By industry for private ownership</strong>
 	<div id="key">
-		-25% <div id="grad">0%</div> +25%
+		<span id="minChange"></span> <div id="grad">0%</div> <span id="maxChange"></span>
 	</div>	
 </div>
 <div id="buttons"></div>
 
 <!-- <div id="ranking">Your county</div> -->
-
-
 
 
 <div id="popup"></div>
@@ -117,11 +118,30 @@
 	<div class="quarter" id="q3"></div> -->
 </div>
 <script src="industries_3digit.js"></script>
+<script src="densities.js"></script>
 
 <script>
+	var minChange = -25
+	var maxChange = 25
+	var zero = 0
+	d3.select("#minChange").html(minChange+"%")
+	d3.select("#maxChange").html(maxChange+"%")
+	
+	var maxColor = "cyan"
+	var minColor = "magenta"
+	var zeroColor = "white"
+	
+	var columnForComparisonX = "oty_avg_wkly_wage_pct_chg"
+
 var geoidsInMap;
 //var industryPromises = []
 var industriesToShow = 10
+var maxDensity
+var minDensity
+		var columnForDensityData = "density2020"
+
+
+//"density2010": 83.95365097573531, "density2020": 77.03870488774074, "densityChange": -6.914946087994579, "densityChangePct": -0.08236623431651793, "popChange": -3499.0
 
 // for(i in industries3Digit){
 // 	var industryPromise = d3.csv("data/"+industries3Digit[i])
@@ -133,6 +153,18 @@ Promise.all([d3.json("mainland.geojson"),
 	//.concat(industryPromises)
 	.concat(d3.csv("industry-titles-csv.csv")))
 	.then(function(loadData){
+		
+		
+		console.log(densities)
+		
+		maxDensity = d3.max(densities, function(d){return d[columnForDensityData]})
+		minDensity = d3.min(densities, function(d){return d[columnForDensityData]})
+		
+		var densityDict = makeDensityDict(densities)
+		console.log(makeDensityDict(densities))
+		console.log(maxDensity)
+		console.log(minDensity)
+		
 	     let mapData = loadData[0]
 		 var stateMapData = loadData[1]
 		var industryCodes = loadData[2]
@@ -146,7 +178,7 @@ Promise.all([d3.json("mainland.geojson"),
 		
 		var privateOwnership = "5"
 		
-		for(var i =0; i<industries3Digit.length; i++){
+		//for(var i =0; i<industries3Digit.length; i++){
 			
 			
 			
@@ -155,12 +187,27 @@ Promise.all([d3.json("mainland.geojson"),
 // 				return d
 // 				}
 // 			})
+			var currentFile = "2021.q1-q3 10 10 Total, all industries.csv"
+			//console.log(currentFile)
+			 Promise.all([d3.csv("data/"+currentFile)])
+			.then(function(data){
+				console.log(data)
+				var privateData = data[0].filter(function(d){
+					if(d["own_code"]==privateOwnership){
+						return d
+						}
+				})
+				//console.log(privateData)
+				drawIndustry(privateData,mapData,stateMapData,densityDict)
 			
-			console.log(industries3Digit[i])
+			
+			//console.log(industries3Digit[i])
 			
 			// var industryCode = privateData[0]["industry_code"]
 // 			var industryName = industryCodesDictionary[industryCode]
-//	
+			
+			for(var i =0; i<industries3Digit.length; i++){
+
 				var industryLabel = industries3Digit[i].replace("2021.q1-q3 ","").replace(".csv","")
 				d3.select("#buttons").append("div")
 				.html(industryLabel)
@@ -177,16 +224,17 @@ Promise.all([d3.json("mainland.geojson"),
  				 				}
  			 			})
 						console.log(privateData)
- 						drawIndustry(privateData,mapData,stateMapData)
+ 						drawIndustry(privateData,mapData,stateMapData,densityDict)
  					})
 				})
 			
 			
 		}
 	 
+	 })
 })
 
-function drawIndustry(privateData,mapData,stateMapData){
+function drawIndustry(privateData,mapData,stateMapData,densities){
 			d3.selectAll(".industryDiv").remove()
 			var iCode = privateData[0]["industry_code"]
 			var iName = privateData[0]["industry_title"]
@@ -219,9 +267,9 @@ function drawIndustry(privateData,mapData,stateMapData){
  			drawMap(formatByFips(wagesDataQ1), mapData,"q1_"+iCode,stateMapData)
  			drawMap(formatByFips(wagesDataQ2), mapData,"q2_"+iCode,stateMapData)
  			drawMap(formatByFips(wagesDataQ3), mapData,"q3_"+iCode,stateMapData)
- 			drawScatter(mapData,formatByFips(wagesDataQ1),"q1_"+iCode)
- 			drawScatter(mapData,formatByFips(wagesDataQ2),"q2_"+iCode)
- 			drawScatter(mapData,formatByFips(wagesDataQ3),"q3_"+iCode)
+ 			drawScatter(mapData,formatByFips(wagesDataQ1),"q1_"+iCode,densities)
+ 			drawScatter(mapData,formatByFips(wagesDataQ2),"q2_"+iCode,densities)
+ 			drawScatter(mapData,formatByFips(wagesDataQ3),"q3_"+iCode,densities)
 }
 
 function getMapFips(mapData){
@@ -256,14 +304,26 @@ function rankCounty(countyFips,data){
 	return "Ranking within state: "+(countyIndex+1)+" out of "+sortedCounties.length
 }
 
-function drawScatter(mapData,data,divName){
-	var w = 400
+
+function makeDensityDict(densities){
+	var formatted = {}
+	for(var i in densities){
+		var fips = densities[i].stateFips+densities[i].countyFips
+		var density2020 = densities[i][columnForDensityData]
+		formatted[fips]=density2020
+	}
+	return formatted
+}
+
+function drawScatter(mapData,data,divName,densities){
+	var w = 1000
 	var h = 250
 	var p = 40
-	var yScale = d3.scaleLinear().domain([-25,25]).range([h-p*2,0])
-	var cScale = d3.scaleLinear().domain([-25,0,25]).range(["magenta","#fff","cyan"])
+	var yScale = d3.scaleLinear().domain([minChange,maxChange]).range([h-p*2,0])
+	var cScale = d3.scaleLinear().domain([minChange,zero,maxChange]).range([minColor,zeroColor,maxColor])
 	var yAxis = d3.axisRight().scale(yScale).tickSize(w-p*2)
-		
+	
+	
 	var maxAWW = d3.max(mapData.features,function(d){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		if(data[fips]!=undefined){
@@ -272,7 +332,8 @@ function drawScatter(mapData,data,divName){
 	})
 	
 	//var xScale = d3.scaleSqrt().domain([0,maxAWW]).range([0,w-p*2])
-	var xScale = d3.scaleSqrt().domain([0,4000]).range([0,w-p*2])
+	//var xScale = d3.scaleSqrt().domain([0,4000]).range([0,w-p*2])
+	var xScale = d3.scaleSqrt().domain([minDensity,maxDensity]).range([0,w-p*2])
 	var xAxis = d3.axisBottom().scale(xScale)
 	
 	var svg = d3.select("#"+divName).append("svg").attr("width",w).attr("height",h)
@@ -311,9 +372,9 @@ function drawScatter(mapData,data,divName){
 	
 	.attr("cx",function(d,i){
 		var fips = d.properties["GEO_ID"].split("US")[1]
-		var countyData = data[fips]
+		var countyData = densities[fips]
 		if(countyData!=undefined){
-		return xScale(countyData["avg_wkly_wage"])
+		return xScale(countyData)
 		}else{
 			return 10
 		}		
@@ -322,7 +383,7 @@ function drawScatter(mapData,data,divName){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		var countyData = data[fips]
 		if(countyData!=undefined){
-			return cScale(countyData["oty_avg_wkly_wage_pct_chg"])
+			return cScale(countyData[columnForComparisonX])
 		}else{
 			return 10
 		}		
@@ -349,7 +410,7 @@ function drawScatter(mapData,data,divName){
 		if(data[fips]!=undefined){
 			var aww =data[fips]["avg_wkly_wage"]
 			var awwChg = data[fips]["oty_avg_wkly_wage_chg"]
-			var awwPctChg = data[fips]["oty_avg_wkly_wage_pct_chg"]
+			var awwPctChg = data[fips][columnForComparisonX]
 			popupString+="<br>$ Average Weekly Wage: "+aww
 			+"<br>$ Change: "+awwChg
 			+"<br> % Change: "+awwPctChg+"%"
@@ -381,7 +442,7 @@ function drawScatter(mapData,data,divName){
 	})
 	svg.append("g").call(xAxis).attr("transform","translate("+p+","+(yScale(-25)+p)+")")
 	
-	svg.append("text").text("$ average weekly wages").attr("x",(w-p*2)/2).attr("y",yScale(-25)+p+30)
+	svg.append("text").text(columnForDensityData+" 2010 - 2020").attr("x",(w-p*2)/2).attr("y",yScale(-25)+p+30)
 	svg.append("text").text("% change in average weekly wages").attr("x",w-10).attr("y",p)
 	.style("writing-mode", "vertical-rl")
 }
@@ -408,8 +469,8 @@ function drawMap(data, mapData,divName,stateMapData){
 	
 	//draw flock idea
 	
-	  var w = 400
-	  var h = 250
+	  var w = 800
+	  var h = 450
 	const svg = d3.select("#"+divName).append("svg")
 	  .attr("width",w)
 	  .attr("height",h)
@@ -427,13 +488,13 @@ function drawMap(data, mapData,divName,stateMapData){
 	var maxDif = d3.max(mapData.features,function(d){
 		  var fips = d.properties["GEO_ID"].split("US")[1]
 	  if(data[fips]!=undefined){
-		  return parseFloat(data[fips]["oty_avg_wkly_wage_pct_chg"])
+		  return parseFloat(data[fips][columnForComparisonX])
 	  }
 	})
 	var minDif = d3.min(mapData.features,function(d){
 		  var fips = d.properties["GEO_ID"].split("US")[1]
 	  if(data[fips]!=undefined){
-		  return parseFloat(data[fips]["oty_avg_wkly_wage_pct_chg"])
+		  return parseFloat(data[fips][columnForComparisonX])
 	  }else{
 	  //	console.log("NOT",fips)
 	  }
@@ -441,7 +502,7 @@ function drawMap(data, mapData,divName,stateMapData){
 //	console.log(minDif)
 
 	//var difScale = d3.scaleLinear().domain([minDif,0,maxDif]).range(["magenta","#fff","cyan"])
-	var difScale = d3.scaleLinear().domain([-25,1.07,25]).range(["magenta","#fff","cyan"])
+	var difScale = d3.scaleLinear().domain([minChange,zero,maxChange]).range([minColor,zeroColor,maxColor])
 
 	
   svg.append("g")
@@ -463,7 +524,7 @@ function drawMap(data, mapData,divName,stateMapData){
 		  // console.log(data[fips])
 // 		  console.log(fips)
 		  if(data[fips]!=undefined){
-			  return difScale(data[fips]["oty_avg_wkly_wage_pct_chg"])
+			  return difScale(data[fips][columnForComparisonX])
 		  }
 		 return "#000"
 	})
@@ -493,7 +554,7 @@ function drawMap(data, mapData,divName,stateMapData){
 		if(data[fips]!=undefined){
 			var aww =data[fips]["avg_wkly_wage"]
 			var awwChg = data[fips]["oty_avg_wkly_wage_chg"]
-			var awwPctChg = data[fips]["oty_avg_wkly_wage_pct_chg"]
+			var awwPctChg = data[fips][columnForComparisonX]
 			popupString+="<br>$ Average Weekly Wage: "+aww
 			+"<br>$ Change: "+awwChg
 			+"<br> % Change: "+awwPctChg+"%"
