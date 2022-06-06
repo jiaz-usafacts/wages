@@ -83,7 +83,7 @@
 	QCEW data / BLS / <strong>% change in average weekly wages by quarter</strong> All Industry/Size/Ownership<br><br>
 	
 	<div id="inflations">
-		Inflation rate buttons: points of interest to be set for different groups?
+		Inflations(points of interest to be set for different groups):
 		<div class="iButton" id="inflation1">0</div>
 		<div class="iButton" id="inflation2">2</div>
 		<div class="iButton" id="inflation3">6</div>
@@ -115,7 +115,7 @@
 	var inflation = 6
 	var interval = 5
 	var currentQuarter = "q1"
-	var scatterYScale
+	
 	
 	var quarterData = {"q1":null, "q2":null, "q3":null}
 	
@@ -149,49 +149,34 @@
 		
 		
 		inflation = d3.select(this).html().replace("%","")
-		
-		d3.select("#inflationLine").transition().attr("y",scatterYScale(inflation))
-		d3.select("#inflationLabel").transition().attr("y",scatterYScale(inflation)).text("Currently showing inflation at "+inflation+"%")
 		//console.log(currentInflation)
 	  calculateAboveBelow(quarterData[currentQuarter],inflation,"explain")
 		
 		
 		d3.selectAll(".countyPath")
 		.each(function(d){
+		//	console.log(d)
 			var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
-				inflation-interval*1,parseFloat(inflation),parseFloat(inflation)+parseFloat(interval*1),parseFloat(inflation)+parseFloat(interval*2),parseFloat(inflation)+parseFloat(interval*3),parseFloat(inflation)+parseFloat(interval*4)]
-				
-	//console.log(domain)
-				
+				inflation-interval*1,inflation,inflation+interval*1,inflation+interval*2,inflation+interval*3,inflation+interval*4]
+			
+			//console.log(d3.select(this))
 			var quarter = d3.select(this).attr("quarter")
 			var dataInUse = quarterData[quarter]
+	 
+			
+			//console.log(quarter,dataInUse)
 			difScale.domain(domain)
 			
-			d3.select(this).transition()
+			d3.select(this)
 	        .attr("fill", function (d) {
+				
 	  		  var fips = d.properties["GEO_ID"].split("US")[1]
+	  		 
 	  		  if(dataInUse[fips]!=undefined){
 	  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
 	  		  }
 	  		 return "#000"
-	  		})
-		})
-		
-		d3.select()
-		
-		d3.selectAll(".dot")
-		.each(function(d){
-			var quarter = d3.select(this).attr("quarter")
-			var dataInUse = quarterData[quarter]
-			
-			d3.select(this).transition()
-	        .attr("fill", function (d) {
-	  		  var fips = d.properties["GEO_ID"].split("US")[1]
-	  		  if(dataInUse[fips]!=undefined){
-	  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
-	  		  }
-	  		 return "#000"
-	  		})
+	  	})
 		})
 		
 	})
@@ -334,14 +319,13 @@ function drawScatter(mapData,data,divName){
 	var w = 1000
 	var h = 300
 	var p = 50
-	scatterYScale = d3.scaleLinear().domain([min,max]).range([h-p*2,0])
-
-	var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
-		inflation-interval*1,inflation,inflation+interval*1,inflation+interval*2,inflation+interval*3,inflation+interval*4]
-		
+	var yScale = d3.scaleLinear().domain([min,max]).range([h-p*2,0])
+		var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
+			inflation-interval*1,inflation,inflation+interval*1,inflation+interval*2,inflation+interval*3,inflation+interval*4]
+	
 	var cScale = d3.scaleLinear().domain(domain).range(colors)
 	
-	var yAxis = d3.axisRight().scale(scatterYScale).tickSize(w-p*2)
+	var yAxis = d3.axisRight().scale(yScale).tickSize(w-p*2)
 		
 	var maxAWW = d3.max(mapData.features,function(d){
 		var fips = d.properties["GEO_ID"].split("US")[1]
@@ -352,17 +336,16 @@ function drawScatter(mapData,data,divName){
 	
 	//var xScale = d3.scaleSqrt().domain([0,maxAWW]).range([0,w-p*2])
 	var xScale = d3.scaleSqrt().domain([0,4000]).range([0,w-p*2])
-	var xAxis = d3.axisBottom().scale(xScale).tickFormat(function(d){return "$"+d})
+	var xAxis = d3.axisBottom().scale(xScale)
 	
-	var svg = d3.select("#"+divName).append("svg").attr("width",w).attr("height",h+p)
-	
-	svg.append("g").call(yAxis).attr("transform","translate("+p+","+(scatterYScale(max)+p)+")")
+	var svg = d3.select("#"+divName).append("svg").attr("width",w).attr("height",h)
+	svg.append("g").call(yAxis).attr("transform","translate("+p+","+(yScale(25)+p)+")")
   	.style("stroke-dasharray", "1 2")
 	
-	svg.append("text").attr("id","stateLabel")
-	.text("All counties in "+divName)
-	.attr("x",p).attr("y",p-3)
-	.style("font-size","18px")
+		svg.append("text").attr("id","stateLabel")
+		.text("All counties in "+divName)
+		.attr("x",p).attr("y",p-3)
+		.style("font-size","18px")
 	
 	svg.selectAll(".dot")
 	.data(mapData.features)
@@ -375,7 +358,6 @@ function drawScatter(mapData,data,divName){
 		//console.log(d.properties)
 		return "countyDot "+state
 	})
-	.attr("quarter",divName)
 	.attr("id",function(d){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		return "_"+fips
@@ -384,7 +366,7 @@ function drawScatter(mapData,data,divName){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		var countyData = data[fips]
 		if(countyData!=undefined){
-			return scatterYScale(countyData["oty_avg_wkly_wage_pct_chg"])
+			return yScale(countyData["oty_avg_wkly_wage_pct_chg"])
 		}else{
 			return 10
 		}
@@ -460,15 +442,9 @@ function drawScatter(mapData,data,divName){
 		d3.selectAll(".statePath").attr("stroke-opacity",0)
 		
 	})
-	svg.append("g").call(xAxis).attr("transform","translate("+p+","+(h-p)+")")
+	svg.append("g").call(xAxis).attr("transform","translate("+p+","+(yScale(-25)+p)+")")
 	
-	var inflationLine = svg.append("rect").attr("x",0).attr("width",w-p*2).attr("height",1).attr("y",scatterYScale(inflation))
-	.attr("transform","translate("+p+","+p+")").attr("id","inflationLine")
-	
-	var inflationLabel =  svg.append("text").attr("x",0).attr("y",scatterYScale(inflation)-2).text("Currently showing inflation at "+inflation+"%")
-	.attr("transform","translate("+p+","+p+")").attr("id","inflationLabel")
-	
-	svg.append("text").text("$ average weekly wages").attr("x",(w-p*2)/2).attr("y",h+p-10)
+	svg.append("text").text("$ average weekly wages").attr("x",(w-p*2)/2).attr("y",yScale(-25)+p+30)
 	svg.append("text").text("% change in average weekly wages").attr("x",w-10).attr("y",p)
 	.style("writing-mode", "vertical-rl")
 }
@@ -633,8 +609,6 @@ function drawMap(data, mapData,divName,stateMapData){
 		//console.log("state_"+d.properties.STATE)
 		return "state_"+d.properties.STATE
 	})
-	
-	
 //draw popup line graph for each county - all quarter comparisons
 //scatterplot with 2 dots for each - x axis is size of county, y is change - 1 circle for each, line to connect.
 		//add cross selection of maps
