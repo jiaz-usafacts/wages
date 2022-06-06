@@ -147,52 +147,12 @@
 		d3.select(this).style("background-color","#aaa")
 		
 		
+		inflation = parseFloat(d3.select(this).html().replace("%",""))
+		recolorForNewInflation()
 		
-		inflation = d3.select(this).html().replace("%","")
 		
-		d3.select("#inflationLine").transition().attr("y",scatterYScale(inflation))
-		d3.select("#inflationLabel").transition().attr("y",scatterYScale(inflation)).text("Currently showing inflation at "+inflation+"%")
 		//console.log(currentInflation)
 	  calculateAboveBelow(quarterData[currentQuarter],inflation,"explain")
-		
-		
-		d3.selectAll(".countyPath")
-		.each(function(d){
-			var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
-				inflation-interval*1,parseFloat(inflation),parseFloat(inflation)+parseFloat(interval*1),parseFloat(inflation)+parseFloat(interval*2),parseFloat(inflation)+parseFloat(interval*3),parseFloat(inflation)+parseFloat(interval*4)]
-				
-	//console.log(domain)
-				
-			var quarter = d3.select(this).attr("quarter")
-			var dataInUse = quarterData[quarter]
-			difScale.domain(domain)
-			
-			d3.select(this).transition()
-	        .attr("fill", function (d) {
-	  		  var fips = d.properties["GEO_ID"].split("US")[1]
-	  		  if(dataInUse[fips]!=undefined){
-	  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
-	  		  }
-	  		 return "#000"
-	  		})
-		})
-		
-		d3.select()
-		
-		d3.selectAll(".dot")
-		.each(function(d){
-			var quarter = d3.select(this).attr("quarter")
-			var dataInUse = quarterData[quarter]
-			
-			d3.select(this).transition()
-	        .attr("fill", function (d) {
-	  		  var fips = d.properties["GEO_ID"].split("US")[1]
-	  		  if(dataInUse[fips]!=undefined){
-	  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
-	  		  }
-	  		 return "#000"
-	  		})
-		})
 		
 	})
 	
@@ -280,6 +240,49 @@ Promise.all([d3.json("mainland.geojson"),
 	  
 	  
 })
+
+function recolorForNewInflation(){
+
+		d3.selectAll("#inflationLine").transition().attr("y",scatterYScale(inflation))
+		d3.selectAll("#inflationLabel").transition().attr("y",scatterYScale(inflation)).text("Currently showing inflation at "+inflation+"%")
+			
+	d3.selectAll(".countyPath")
+	.each(function(d){
+		var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
+			inflation-interval*1,parseFloat(inflation),parseFloat(inflation)+parseFloat(interval*1),parseFloat(inflation)+parseFloat(interval*2),parseFloat(inflation)+parseFloat(interval*3),parseFloat(inflation)+parseFloat(interval*4)]
+			
+//console.log(domain)
+		var quarter = d3.select(this).attr("quarter")
+		var dataInUse = quarterData[quarter]
+		difScale.domain(domain)
+		
+		d3.select(this).transition()
+        .attr("fill", function (d) {
+  		  var fips = d.properties["GEO_ID"].split("US")[1]
+  		  if(dataInUse[fips]!=undefined){
+  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
+  		  }
+  		 return "#000"
+  		})
+	})
+	
+	
+	d3.selectAll(".dot")
+	.each(function(d){
+		var quarter = d3.select(this).attr("quarter")
+		var dataInUse = quarterData[quarter]
+		
+		d3.select(this).transition()
+        .attr("fill", function (d) {
+  		  var fips = d.properties["GEO_ID"].split("US")[1]
+  		  if(dataInUse[fips]!=undefined){
+  			  return difScale(dataInUse[fips]["oty_avg_wkly_wage_pct_chg"])
+  		  }
+  		 return "#000"
+  		})
+	})
+}
+
 function getMapFips(mapData){
 	var geoids = []
 	for(var i in mapData.features){
@@ -561,6 +564,10 @@ function drawMap(data, mapData,divName,stateMapData){
 	})
 	.on("click",function(e,d){
 		var fips = d.properties["GEO_ID"].split("US")[1]
+		var pctChg = parseFloat(quarterData[currentQuarter][fips]["oty_avg_wkly_wage_pct_chg"])
+		inflation = pctChg
+		recolorForNewInflation()
+		//console.log(pctChg)
 		
 	})
 	.on("mouseover",function(e,d){
@@ -581,7 +588,7 @@ function drawMap(data, mapData,divName,stateMapData){
 		if(data[fips]!=undefined){
 			var aww =data[fips]["avg_wkly_wage"]
 			var awwChg = data[fips]["oty_avg_wkly_wage_chg"]
-			var awwPctChg = data[fips]["oty_avg_wkly_wage_pct_chg"]
+			var awwPctChg = parseFloat(data[fips]["oty_avg_wkly_wage_pct_chg"])
 			popupString+="<br>$ Average Weekly Wage: "+aww
 			+"<br>$ Change: "+awwChg
 			+"<br> % Change: "+awwPctChg+"%"
