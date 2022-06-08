@@ -30,13 +30,15 @@
 		display:inline-block;
 		margin:10px;
 		width:400px;
+		height:80px;
+		vertical-align:top;
 	}
 	
 #info{
 	border-bottom:1px solid black;
 	position:fixed;
 	width:100%;
-	height:200px;
+	height:80px;
 	background-color:#fff;
 	z-index:2;
 	top:0px;
@@ -44,14 +46,12 @@
 	padding:10px;
 }
 #charts{
-	margin-top:220px;
+	margin-top:100px;
 	position:absolute;
 	z-index:1;
 	font-size:12px;
 }
-.quarter{
-	width:800px;
-}
+
 .qButton{
 	display:inline-block;
 	width:120px;
@@ -69,7 +69,7 @@
 .iButton{
 	font-size:12px;
 	display:inline-block;
-	width:120px;
+	width:150px;
 	border:1px solid black;
 	padding:3px;
 	text-align:center;
@@ -83,8 +83,8 @@
 	font-size:18px;
 }
 .button{
-	width:250px;
-	height:60px;
+	width:350px;
+	height:40px;
 	border:1px solid black;
 	padding:5px;
 	margin:5px;
@@ -92,14 +92,18 @@
 	display:inline-block;
 	cursor:pointer;
 }
+#buttons{
+	display:inline-block;
+	height:80px;
+}
 </style>
 <!-- Create an element where the map will take place -->
 <div id="info">
 	
 	QCEW data from BLS / All Industry/All Sizes/All Ownerships<br>
-	<div id="activeColumn"></div>
+	<!-- <div id="activeColumn"></div> -->
 	<div id="buttons"></div>
-	<div id="key">key</div>
+	<div id="key"></div>
 	
 </div>
 
@@ -247,7 +251,7 @@ Promise.all([d3.json("mainland.geojson"),d3.csv("annual_national.csv")].concat(p
 })
 
 function histogram(data,divName){
-	var w = 600
+	var w = 500
 	var h = 300
 	var p = 30
 	var svg = 	d3.select("#"+divName).append("div").attr("class","quarterCharts").append("svg").attr("width",w+p*2).attr("height",h+p*2)
@@ -310,7 +314,7 @@ function formatByFips(data){
 function drawMap(data, mapData,divName){
 	//console.log(divName)
 	
-	  var w = 600
+	  var w = 500
 	  var h = 400
 	const div = d3.select("#charts").append("div").attr("id",divName).attr("class","smallMap")
 	var svg = div.append("svg")
