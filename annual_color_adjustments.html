@@ -146,6 +146,7 @@
 				d3.selectAll(".quarterCharts").remove()
 				  histogram(dataByYear["_2020"],"_2020")
 				  histogram(dataByYear["_2009"],"_2009")
+				  histogram(dataByYear["_2021"],"_2021")
 				
 				
 				d3.selectAll(".button").style("background-color","#fff")
@@ -217,9 +218,10 @@
 	var geoidsInMap;
 	
 	var promises = []
-	for(var i = 1990; i<2021;i++){
+	for(var i = 1990; i<2022;i++){
 		var filePath = "annual_wages/annual"+i+".csv"
 		var promise = d3.csv(filePath)
+	//	console.log(filePath)
 		promises.push(promise)
 	}
 	
@@ -227,7 +229,7 @@
 Promise.all([d3.json("mainland.geojson"),d3.csv("annual_national.csv")].concat(promises))
   .then(function(loadData){
 	  
-	//  console.log(loadData)
+	  console.log(loadData)
 	  
 	  
 	  for(var i in loadData){
@@ -242,7 +244,8 @@ Promise.all([d3.json("mainland.geojson"),d3.csv("annual_national.csv")].concat(p
 			  var yearData = formatByFips(loadData[i])
 			   dataByYear["_"+year]=yearData
 			  
-			  if(year=="2009"||year=="2020"){
+			  if(year=="2009"||year=="2020"||year=="2021"){
+				  console.log(year)
 	  			  drawMap(yearData, mapData,"_"+year)
 				  histogram(yearData,"_"+year)
 			  }
@@ -263,7 +266,7 @@ function histogram(data,divName){
 	      .domain([min,max])     // can use this instead of 1000 to have the max of data: d3.max(data, function(d) { return +d.price })
 	      .range([0, w]);
 	  
-		  console.log(min,max)
+		  //console.log(min,max)
 	 const histogram = d3.histogram()
 	       .value(function(d) { return data[d][colorByColumn] })   // I need to give the vector of value
 	       .domain(x.domain())  // then the domain of the graphic
@@ -272,7 +275,7 @@ function histogram(data,divName){
 	   // And apply this function to data to get the bins
 	   const bins = histogram(Object.keys(data));
 
-		console.log(bins)
+		//console.log(bins)
 	const y = d3.scaleLinear()
 	      .range([h, 0]);
 	      y.domain([0, d3.max(bins, function(d) { return d.length; })]);   // d3.hist has to be called before the Y axis obviously
