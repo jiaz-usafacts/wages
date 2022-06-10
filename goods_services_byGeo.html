@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="stateFipsDict.js"></script>
+<style>
+	body{
+		font-size:12px;
+		font-family: 'Open Sans', sans-serif;
+		font-weight:100;
+	}
+	p{
+		width:400px;
+	}
+	#popup{
+		position:fixed;
+		background-color:rgba(255,255,255,.8);
+		border:1px solid black;
+		font-size:11px;
+		padding:10px;
+		display:none;
+		z-index:3;
+	}
+	#key{
+		font-size:12px;
+		display:inline-block;
+		margin:10px;
+		width:400px;
+	}
+	
+#info{
+	width:100%;
+	background-color:#fff;
+	z-index:2;
+	padding:10px;
+	position:fixed;
+	top:0px;
+}
+#charts{
+	z-index:1;
+	font-size:12px;
+	margin-top:80px;
+}
+.quarter{
+	width:800px;
+}
+.qButton{
+	display:inline-block;
+	width:120px;
+	border:1px solid black;
+	padding:3px;
+	text-align:center;
+	cursor:pointer;
+}
+#quarterControl{
+	font-size:12px;
+}	
+.smallMap{
+	display:inline-block;
+}
+
+#activeColumn{
+	font-size:18px;
+}
+.button{
+	width:250px;
+	height:60px;
+	border:1px solid black;
+	padding:5px;
+	margin:5px;
+	vertical-align:top;
+	display:inline-block;
+	cursor:pointer;
+}
+</style>
+<!-- Create an element where the map will take place -->
+<div id="info">
+	
+	QCEW data from BLS<br>
+	<div id="activeColumn"></div>
+	
+</div>
+
+<div id="popup"></div>
+<div id="charts">
+</div>
+
+<script>
+	
+	var colorByColumn = "avg_wkly_wage"
+	
+	
+	var topColor ="cyan"
+	var bottomColor ="magenta"
+	
+	var domain = [-1000,-500,-200,-100,0,100,200,500,1000]
+	
+	var inflation = 0
+	var interval = 5
+	var currentQuarter = "q1"
+	var scatterYScale
+	
+	var dataByYear = {}
+	
+	var min = inflation-interval*4
+	var max = inflation+interval*4
+	var difScale
+	var colors = ["#CC6A19","#D99522","#E5BD3F","#F2E289","#F1F1F1","#97DFC7","#5CB79A","#00906E","#004837"]
+	var gw = 400
+	var gh = 20
+	var gp = 15
+	var gradientSvg = d3.select("#key").append("svg").attr("width",gw).attr("height",gh+gp*2)
+	var gradient = d3.select("#key svg").append("defs").append("linearGradient").attr("id","gradient1")
+	for(var c in colors){
+		var step = 100/(colors.length)*c
+		var color = colors[c]
+		gradient.append("stop").attr("class","stop"+c).attr("stop-color",color).attr("offset",step+"%")
+	}
+	gradientSvg.append("rect").attr("width",gw).attr("height",gh).attr("x",0).attr("y",gp).attr("fill","url(#gradient1)")
+	gradientSvg.append("text").text("% increase").attr("x",0).attr("y",gp-3).attr("text-anchor","start")
+
+	gradientSvg.append("text").text(min+"%").attr("x",10).attr("y",gh+gp*2-1).attr("text-anchor","start")
+	gradientSvg.append("text").text(inflation+"%").attr("x",gw/2).attr("y",gh+gp*2-1).attr("text-anchor","middle")
+	gradientSvg.append("text").text(max+"%").attr("x",gw-10).attr("y",gh+gp*2-1).attr("text-anchor","end")
+	
+	
+	var geoidsInMap;
+	
+	
+	var goodsFile = "101 Goods-producing_own5.json"
+	var servicesFile = "102 Service-providing_own5.json"
+	
+	//avg_wkly_wage
+	var urbanRural 
+// Load external data and boot
+Promise.all([d3.json("mainland.geojson"),d3.json("quarterly_wages/"+goodsFile),d3.json("quarterly_wages/"+servicesFile),d3.json("counties_urbanRural.json")])
+  .then(function(loadData){
+	  
+		  	var mapData = loadData[0]
+	  
+		  	var goodsData = loadData[1]
+	  	var servicesData = loadData[2]
+	  urbanRural = loadData[3]
+	  
+	  for(var y = 2018; y<=2021; y++){
+		  for(var i = 1; i<=4; i++){
+			  drawScatter(goodsData,servicesData)
+			  break
+		  }
+		  break
+	  }	  
+})
+
+function calculateAboveBelow(data,threshold,divName){
+	var above = []
+	var below = []
+	var decrease = []
+	for(var i in data){
+		var wagePctIncrease = parseFloat(data[i]["oty_avg_wkly_wage_pct_chg"])
+		if(wagePctIncrease>=parseFloat(threshold)){
+			above.push(data[i]["fips"])
+		}else if(wagePctIncrease>=0){
+			below.push(data[i]["fips"])
+		}else{
+			decrease.push(data[i]["fips"])
+		}
+	}
+	d3.select("#"+divName).attr("class","explaination")
+	.html("In quarter "+currentQuarter.replace("q","")+", with inflation at "+inflation+"%, "+above.length+" counties had average wage increases that were equalt to or above inflation, while "
+	+below.length+" counties had wages increases that were less than inflation, and "+decrease.length+" counties had lower average weekly wages.")
+}
+
+function formatByFips(data){
+	var formatted = {}
+	for(var i in data){
+		var cData = data[i]
+		var fips = cData["area_fips"]
+		formatted[fips]=cData
+	}
+	return formatted
+}
+
+function drawScatter(servicesData,goodsData){
+	
+	var urbanRuralDict = {
+	"1":"Large central metro",//NCHS-defined “central” counties of MSAs of 1 million or more population",
+	"2":"large fringe metro",//" NCHS-defined “fringe” counties of MSAs of 1 million or more population",
+	"3":"Medium metro Counties",//" within MSAs of 250,000-999,999 population",
+	"4":"Small metro Counties ",//within MSAS of 50,000 to 249,999 population",
+	"5":"Micropolitan Counties",//" in micropolitan statistical areas",
+	"6": "Noncore Counties"}
+	
+	console.log(goodsData)
+	
+	var w = 400
+	var h = 400
+	var p = 120
+	var column = "oty_avg_wkly_wage_pct"
+	var yearQtr = "2021_4"
+	var svg = d3.select("#charts").append("svg").attr("width",w+p*2).attr("height",h+p*2)
+	var yScale = d3.scaleLinear().domain([-80,0,80]).range([h,h/2,0])
+	var xScale = d3.scaleLinear().domain([0,6]).range([0,w])
+	
+	var xAxis = d3.axisBottom().scale(xScale).tickFormat(function(d){return urbanRuralDict[d]})
+	.tickSize(20).ticks(6)
+	//svg.append("g").call(xAxis).attr("transform","translate("+p+","+(h+p)+")")
+svg.append("g").call(xAxis)
+	.attr("transform","translate("+p+","+(h+p)+")")
+	.selectAll("text")  
+    .style("text-anchor", "end")
+    .attr("dx", "-.8em")
+    .attr("dy", ".15em")
+    .attr("transform", "rotate(-65)" );
+	
+	var yAxis = d3.axisLeft().scale(yScale)
+	svg.append("g").call(yAxis).attr("transform","translate("+p+","+p+")")
+	
+	svg.selectAll(".dot")
+		.data(Object.keys(goodsData))
+		.enter()
+		.append("circle")
+		.attr("r","4")
+		.attr("opacity",.1)
+		.attr("cy",function(d){
+			
+			var entry = goodsData[d][yearQtr]//[column]
+			if(entry!=undefined){
+				if(entry["oty_avg_wkly_wage_pct_chg"]!=undefined){
+					wagePct = entry["oty_avg_wkly_wage_pct_chg"]
+				}else{
+					wagePct = entry["oty_avg_wkly_wage_pct"]
+				}
+				return yScale(wagePct)
+			}
+			
+			
+		})
+		.attr("fill",function(d){
+			var entry = goodsData[d][yearQtr]//[column]
+			if(entry!=undefined){
+				if(entry["oty_avg_wkly_wage_pct_chg"]!=undefined){
+					wagePct = entry["oty_avg_wkly_wage_pct_chg"]
+				}else{
+					wagePct = entry["oty_avg_wkly_wage_pct"]
+				}
+				if(wagePct>=0){ return "green"}
+				else{return "red"}
+			}
+		})
+		.attr("cx",function(d){
+			
+			var cat = urbanRural[d]
+			//console.log(d,cat)
+			if(cat ==undefined){
+				return p*-2
+			}
+			return xScale(cat)
+		})
+		.attr("transform","translate("+p+","+p+")")
+		.on("mouseover",function(e,d){
+			//console.log(d)
+			var entry = goodsData[d][yearQtr]//[column]
+			if(entry!=undefined){
+				if(entry["oty_avg_wkly_wage_pct_chg"]!=undefined){
+					wagePct = entry["oty_avg_wkly_wage_pct_chg"]
+				}else{
+					wagePct = entry["oty_avg_wkly_wage_pct"]
+				}
+			}
+			console.log(wagePct)
+			
+		})
+}
+
+
+</script>

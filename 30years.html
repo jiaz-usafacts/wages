@@ -36,7 +36,6 @@
 	border-bottom:1px solid black;
 	position:fixed;
 	width:100%;
-	height:200px;
 	background-color:#fff;
 	z-index:2;
 	top:0px;
@@ -44,7 +43,7 @@
 	padding:10px;
 }
 #charts{
-	margin-top:220px;
+	margin-top:100px;
 	position:absolute;
 	z-index:1;
 	font-size:12px;
@@ -97,11 +96,11 @@
 <div id="info">
 	
 	QCEW data from BLS / All Industry/All Sizes/All Ownerships<br>
-	<div id="buttons"></div>
+	<!-- <div id="buttons"></div>
 	<div id="activeColumn"></div>
 <div id="key">key</div>
-	
-</div>
+
+</div> -->
 
 <div id="popup"></div>
 <div id="charts">
@@ -253,8 +252,8 @@ function formatByFips(data){
 function drawMap(data, mapData,divName){
 	//console.log(divName)
 	
-	  var w = 300
-	  var h = 200
+	  var w = 200
+	  var h = 150
 	const div = d3.select("#charts").append("div").attr("id",divName).attr("class","smallMap")
 	var svg = div.append("svg")
 	  .attr("width",w)
@@ -284,15 +283,18 @@ function drawMap(data, mapData,divName){
 	})
 	//console.log(minDif,maxDif)
 //	var domain = [minDif,inflation-nI*3, inflation-nI*2,inflation-nI,inflation,inflation+(pI),inflation+(pI*2),inflation+(pI*3),maxDif]
-	var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
-		inflation-interval*1,inflation,inflation+interval*1,inflation+interval*2,inflation+interval*3,inflation+interval*4]
+	//var domain = [inflation-interval*4,inflation-interval*3,inflation-interval*2,
+	//	inflation-interval*1,inflation,inflation+interval*1,inflation+interval*2,inflation+interval*3,inflation+interval*4]
 	
 	//console.log(domain)
 //	var domain = [-20,-15,-10,-5,0,5,10,15,20]
 	//var difScale = d3.scaleLinear().domain([minDif,0,maxDif]).range(["magenta","#fff","cyan"])
 	//var difScale = d3.scaleLinear().domain([-25,1.07,25]).range(["magenta","#fff","cyan"])
-	difScale = d3.scaleLinear().domain(domain).range(colors)
-
+	//difScale = d3.scaleLinear().domain(domain).range(colors)
+	var colors = ["#CC6A19","#D99522","#E5BD3F","#F2E289","#fff","#97DFC7","#5CB79A","#00906E","#004837"]
+	difScale = difScale = d3.scaleThreshold()
+		.domain([-20,-15,-10,-5,0,5,10,15,20])
+		.range(colors)
 	
   svg.append("g")
     .selectAll("path")

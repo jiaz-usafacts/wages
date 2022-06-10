@@ -221,10 +221,10 @@ Promise.all([d3.json("mainland.geojson"),d3.csv("annual_national.csv")].concat(p
 	  }
 	  
 	  drawNationalLine(nationalData,"annual_avg_emplvl","cyan")
-	  drawNationalLine(nationalData,"annual_avg_estabs","magenta")
-	  drawNationalLine(nationalData,"avg_annual_pay","black")
+	  // drawNationalLine(nationalData,"annual_avg_estabs","magenta")
+  // 	  drawNationalLine(nationalData,"avg_annual_pay","black")
 	  
-	 // drawLines(dataByYear)
+	  drawLines(dataByYear)
 })
 
 function combineYearlyData(dataByYear){
