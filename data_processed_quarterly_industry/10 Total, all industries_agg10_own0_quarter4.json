@@ -1,0 +1,164 @@
+{
+    "US000": {
+        "1990_4": {
+            "avg_wkly_wage": "483",
+            "oty_avg_wkly_wage_chg": "25",
+            "oty_avg_wkly_wage_pct": "5.5"
+        },
+        "1991_4": {
+            "avg_wkly_wage": "503",
+            "oty_avg_wkly_wage_chg": "20",
+            "oty_avg_wkly_wage_pct": "4.1"
+        },
+        "1992_4": {
+            "avg_wkly_wage": "550",
+            "oty_avg_wkly_wage_chg": "47",
+            "oty_avg_wkly_wage_pct": "9.3"
+        },
+        "1993_4": {
+            "avg_wkly_wage": "556",
+            "oty_avg_wkly_wage_chg": "6",
+            "oty_avg_wkly_wage_pct": "1.1"
+        },
+        "1994_4": {
+            "avg_wkly_wage": "550",
+            "oty_avg_wkly_wage_chg": "-6",
+            "oty_avg_wkly_wage_pct": "-1.1"
+        },
+        "1995_4": {
+            "avg_wkly_wage": "567",
+            "oty_avg_wkly_wage_chg": "17",
+            "oty_avg_wkly_wage_pct": "3.1"
+        },
+        "1996_4": {
+            "avg_wkly_wage": "593",
+            "oty_avg_wkly_wage_chg": "26",
+            "oty_avg_wkly_wage_pct": "4.6"
+        },
+        "1997_4": {
+            "avg_wkly_wage": "630",
+            "oty_avg_wkly_wage_chg": "37",
+            "oty_avg_wkly_wage_pct": "6.2"
+        },
+        "1998_4": {
+            "avg_wkly_wage": "667",
+            "oty_avg_wkly_wage_chg": "37",
+            "oty_avg_wkly_wage_pct": "5.9"
+        },
+        "1999_4": {
+            "avg_wkly_wage": "697",
+            "oty_avg_wkly_wage_chg": "30",
+            "oty_avg_wkly_wage_pct": "4.5"
+        },
+        "2000_4": {
+            "avg_wkly_wage": "716",
+            "oty_avg_wkly_wage_chg": "19",
+            "oty_avg_wkly_wage_pct": "2.7"
+        },
+        "2001_4": {
+            "avg_wkly_wage": "727",
+            "oty_avg_wkly_wage_chg": "0",
+            "oty_avg_wkly_wage_pct": "0"
+        },
+        "2002_4": {
+            "avg_wkly_wage": "740",
+            "oty_avg_wkly_wage_chg": "13",
+            "oty_avg_wkly_wage_pct": "1.8"
+        },
+        "2003_4": {
+            "avg_wkly_wage": "768",
+            "oty_avg_wkly_wage_chg": "28",
+            "oty_avg_wkly_wage_pct": "3.8"
+        },
+        "2004_4": {
+            "avg_wkly_wage": "813",
+            "oty_avg_wkly_wage_chg": "45",
+            "oty_avg_wkly_wage_pct": "5.9"
+        },
+        "2005_4": {
+            "avg_wkly_wage": "826",
+            "oty_avg_wkly_wage_chg": "13",
+            "oty_avg_wkly_wage_pct": "1.6"
+        },
+        "2006_4": {
+            "avg_wkly_wage": "862",
+            "oty_avg_wkly_wage_chg": "36",
+            "oty_avg_wkly_wage_pct": "4.4"
+        },
+        "2007_4": {
+            "avg_wkly_wage": "898",
+            "oty_avg_wkly_wage_chg": "36",
+            "oty_avg_wkly_wage_pct": "4.2"
+        },
+        "2008_4": {
+            "avg_wkly_wage": "919",
+            "oty_avg_wkly_wage_chg": "21",
+            "oty_avg_wkly_wage_pct": "2.3"
+        },
+        "2009_4": {
+            "avg_wkly_wage": "943",
+            "oty_avg_wkly_wage_chg": "24",
+            "oty_avg_wkly_wage_pct": "2.6"
+        },
+        "2010_4": {
+            "avg_wkly_wage": "972",
+            "oty_avg_wkly_wage_chg": "29",
+            "oty_avg_wkly_wage_pct": "3.1"
+        },
+        "2011_4": {
+            "avg_wkly_wage": "955",
+            "oty_avg_wkly_wage_chg": "-17",
+            "oty_avg_wkly_wage_pct": "-1.7"
+        },
+        "2012_4": {
+            "avg_wkly_wage": "1000",
+            "oty_avg_wkly_wage_chg": "45",
+            "oty_avg_wkly_wage_pct": "4.7"
+        },
+        "2013_4": {
+            "avg_wkly_wage": "1000",
+            "oty_avg_wkly_wage_chg": "0",
+            "oty_avg_wkly_wage_pct": "0.0"
+        },
+        "2014_4": {
+            "avg_wkly_wage": "1036",
+            "oty_avg_wkly_wage_chg": "36",
+            "oty_avg_wkly_wage_pct": "3.6"
+        },
+        "2015_4": {
+            "avg_wkly_wage": "1083",
+            "oty_avg_wkly_wage_chg": "47",
+            "oty_avg_wkly_wage_pct": "4.5"
+        },
+        "2016_4": {
+            "avg_wkly_wage": "1067",
+            "oty_avg_wkly_wage_chg": "-16",
+            "oty_avg_wkly_wage_pct_chg": "-1.5"
+        },
+        "2017_4": {
+            "avg_wkly_wage": "1109",
+            "oty_avg_wkly_wage_chg": "42",
+            "oty_avg_wkly_wage_pct_chg": "3.9"
+        },
+        "2018_4": {
+            "avg_wkly_wage": "1145",
+            "oty_avg_wkly_wage_chg": "36",
+            "oty_avg_wkly_wage_pct_chg": "3.2"
+        },
+        "2019_4": {
+            "avg_wkly_wage": "1185",
+            "oty_avg_wkly_wage_chg": "40",
+            "oty_avg_wkly_wage_pct_chg": "3.5"
+        },
+        "2020_4": {
+            "avg_wkly_wage": "1339",
+            "oty_avg_wkly_wage_chg": "154",
+            "oty_avg_wkly_wage_pct_chg": "13.0"
+        },
+        "2021_4": {
+            "avg_wkly_wage": "1418",
+            "oty_avg_wkly_wage_chg": "79",
+            "oty_avg_wkly_wage_pct_chg": "5.9"
+        }
+    }
+}
