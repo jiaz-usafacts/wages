@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="stateFipsDict.js"></script>
+<style>
+	body{
+		font-size:12px;
+		font-family: 'Open Sans', sans-serif;
+		font-weight:100;
+	}
+	p{
+		width:400px;
+	}
+	#popup{
+		position:fixed;
+		background-color:rgba(255,255,255,.8);
+		border:1px solid black;
+		font-size:11px;
+		padding:10px;
+		display:none;
+		z-index:3;
+	}
+	#key{
+		font-size:12px;
+		display:inline-block;
+		margin:10px;
+		width:400px;
+		height:80px;
+		vertical-align:top;
+	}
+	
+#charts{
+
+	z-index:1;
+	font-size:12px;
+}
+
+#activeColumn{
+	font-size:18px;
+}
+.button{
+	width:80px;
+	border:1px solid black;
+	padding:5px;
+	margin:5px;
+	cursor:pointer;
+	text-align:center;
+	display:inline-block;
+}
+</style>
+<!-- Create an element where the map will take place -->
+<div id="info">
+	
+	QCEW data from BLS / All Industry/All Sizes/All Ownerships
+	<div id="activeColumn"></div>
+	<div id="buttons">
+		<div id="_2020" class="button">2020</div>
+		<div id="_2021" class="button">2021</div>
+	</div>
+	<div id="key"></div>
+	
+</div>
+
+<div id="popup"></div>
+<div id="charts">
+</div>
+
+<script>
+	var colorByColumn = "oty_annual_avg_emplvl_pct_chg"
+	
+	d3.select("#activeColumn").html(colorByColumn)
+	
+	var colors = ["#CC6A19","#D99522","#E5BD3F","#F2E289","#97DFC7","#5CB79A","#00906E","#004837"]
+	var difScale = difScale = d3.scaleThreshold()
+		.domain([-20,-10,-5,0,5,10,20])
+		.range(colors)
+	
+Promise.all([d3.json("mainland.geojson"),
+	d3.csv("annual_wages/annual2020.csv"),
+	d3.csv("annual_wages/annual2021.csv")])
+	.then(function(loadData){
+
+		var mapData = loadData[0]
+		var data2020 = loadData[1]
+		var data2021 = loadData[2]
+
+		drawKey()
+		drawMap(formatByFips(data2020), mapData,"_2020")
+		drawMap(formatByFips(data2021), mapData,"_2021")
+
+		d3.select("#_2021map").style("display","none")
+		d3.select("#_2020").style("background-color","#aaa")
+
+
+		d3.selectAll(".button")
+		.on("click",function(){
+			var year = d3.select(this).attr("id")
+			d3.selectAll(".button").style("background-color","#fff")
+			d3.select("#"+year).style("background-color","#aaa")
+
+			d3.selectAll(".yearMap").style("display","none")
+			d3.select("#"+year+"map").style("display","inline")
+		})
+
+	})
+function drawKey(){
+	var gw = 600
+	var gh = 30
+	var gp = 20
+		var gpw = 60
+	var gradientSvg = d3.select("#key").append("svg").attr("width",gw).attr("height",gh+gp*2)
+		
+	for(var c in colors){
+		gradientSvg.append("rect").attr("x",c*gpw).attr("y",gp).attr("width",gpw).attr('height',gp)
+		.attr("fill",colors[c])
+		
+		gradientSvg.append("text").attr("x",c*gpw+gpw).attr("y",gh+gp).text(difScale.domain()[c])
+		//.attr("fill",colors[c])
+		.attr("fill","#000")
+		.attr("text-anchor","middle")
+	}
+	gradientSvg.append("rect").attr("width",gw).attr("height",gh).attr("x",0).attr("y",gp).attr("fill","url(#gradient1)")
+	gradientSvg.append("text").text("% over the year change").attr("x",0).attr("y",gp-3).attr("text-anchor","start")
+
+	
+}
+function formatByFips(data){
+	var formatted = {}
+	for(var i in data){
+		var cData = data[i]
+		var fips = cData["area_fips"]
+		formatted[fips]=cData
+	}
+	return formatted
+}
+function drawMap(data, mapData,divName){
+	//console.log(divName)
+	
+	  var w = 600
+	  var h = 400
+	const div = d3.select("#charts").append("div").attr("id",divName+"map").attr("class","yearMap")
+	var svg = div.append("svg").attr("width",w).attr("height",h)
+	
+	svg.append("text").text(divName.replace("_","")).attr("x",10).attr("y",14).style("font-size","14px")
+	
+	// Map and projection
+	const path = d3.geoPath();
+	const projection = d3.geoMercator()
+		.fitSize([w,h],mapData);
+
+	
+	var maxDif = d3.max(mapData.features,function(d){
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+	  if(data[fips]!=undefined){
+		  return parseFloat(data[fips][colorByColumn])
+	  }
+	})
+	var minDif = d3.min(mapData.features,function(d){
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+	  if(data[fips]!=undefined){
+		  return parseFloat(data[fips][colorByColumn])
+	  }else{
+	  //	console.log("NOT",fips)
+	  }
+	})
+  svg.append("g")
+    .selectAll("path")
+    .data(mapData.features)
+    .join("path")
+      // draw each country
+      .attr("d", d3.geoPath()
+        .projection(projection)
+      )
+  	.attr("class", function(d){
+  		var state = "path_state_"+d.properties["STATE"]
+  		//console.log(d.properties)
+  		return "countyPath "+state
+  	})
+	.attr("quarter",divName)
+      // set the color of each country
+      .attr("fill", function (d) {
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+		  // console.log(data[fips])
+// 		  console.log(fips)
+		  if(data[fips]!=undefined){
+			  return difScale(data[fips][colorByColumn])
+		  }
+		 return "#000"
+	})
+	.attr("cursor","pointer")
+	 .attr("stroke","#000")
+	 .attr("stroke-opacity",0)
+	.attr("id",function(d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		return "_"+fips
+	})	
+	.on("click",function(e,d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var pctChg = parseFloat(quarterData[currentQuarter][fips][colorByColumn])
+		inflation = pctChg
+		recolorForNewInflation()
+		//console.log(pctChg)
+		
+	})
+	.on("mouseover",function(e,d){
+		//console.log(d)
+		d3.select(this).style("stroke-opacity",1)
+		var county = d.properties.NAME
+		var stateName = numberToState[d.properties.STATE]
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var popupString = county+" County, "+stateName
+		
+		var state = "state_"+d.properties["STATE"]
+
+		
+		if(data[fips]!=undefined){
+			var aww =data[fips]["annual_avg_wkly_wage"]
+			var awwChg = data[fips]["oty_annual_avg_wkly_wage_chg"]
+			var awwPctChg = parseFloat(data[fips][colorByColumn])
+			popupString+="<br>$ Average Weekly Wage: "+aww
+			+"<br>$ Change: "+awwChg
+			+"<br> % Change: "+awwPctChg+"%"
+			
+		}
+		
+
+	    var posX = e.clientX;
+	    var posY = e.clientY;
+		
+		
+		d3.select("#popup").html(popupString)
+		.style("left",posX+20+"px")
+		.style("top",posY+"px")
+		.style("display","block")
+		
+		d3.selectAll(".countyDot").attr("opacity",0)
+		d3.selectAll(".dot_"+state).attr("opacity",.2)
+		d3.selectAll("#_"+fips).attr("opacity",1)
+		
+		//console.log(state)
+		d3.selectAll("#"+state).attr("stroke-opacity",.2)
+		
+	})
+	.on("mouseout",function(e,d){
+		d3.select(this).style("stroke-opacity",0)
+		d3.selectAll(".countyDot").attr("opacity",1)
+		d3.selectAll(".countyPath").attr("stroke-opacity",0)
+		
+		d3.selectAll(".statePath").attr("stroke-opacity",0)
+		d3.select("#popup").style("display","none")
+		d3.selectAll("#stateLabel").text("All counties")
+		
+	})
+	
+
+}
+
+
+
+</script>

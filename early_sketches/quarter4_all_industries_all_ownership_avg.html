@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="stateFipsDict.js"></script>
+<script src="colorScale.js"></script>
+<style>
+	body{
+		font-size:12px;
+		font-family: 'Open Sans', sans-serif;
+		font-weight:100;
+	}
+	p{
+		width:400px;
+	}
+	#popup{
+		position:fixed;
+		background-color:rgba(255,255,255,.8);
+		border:1px solid black;
+		font-size:11px;
+		padding:10px;
+		display:none;
+		z-index:3;
+	}
+	#key{
+		font-size:12px;
+		margin:10px;
+		width:400px;
+		height:100px;
+	}
+	
+#info{
+	width:100%;
+	z-index:2;
+	padding:10px;
+}
+#charts{
+	z-index:1;
+	font-size:12px;
+}
+.quarter{
+	width:800px;
+}
+.qButton{
+	display:inline-block;
+	width:120px;
+	border:1px solid black;
+	padding:3px;
+	text-align:center;
+	cursor:pointer;
+}
+#quarterControl{
+	font-size:12px;
+}	
+.smallMap{
+	display:inline-block;
+}
+
+#activeColumn{
+	font-size:18px;
+}
+.button{
+	width:250px;
+	height:60px;
+	border:1px solid black;
+	padding:5px;
+	margin:5px;
+	vertical-align:top;
+	display:inline-block;
+	cursor:pointer;
+}
+</style>
+<!-- Create an element where the map will take place -->
+<div id="info">
+	<div id="activeColumn"></div>
+</div>
+	<div id="key"></div>
+
+<div id="popup"></div>
+<div id="charts">
+</div>
+
+<script>
+	
+	var colorByColumn = "oty_avg_wkly_wage_pct"
+	var colorByColumn2 = "oty_avg_wkly_wage_pct_chg"
+	
+	
+	var aboveColor = "#00906E"
+//"#003E7F"//"#851C6A"//"#00906E"//"#00347B"//"#5CB79A"//"#00906E"
+	var belowColor ="#97DFC7"//"#95BAED"//"#005AA2"//"#00906E"// "#CF77AD"//"#D99522"//"#E62790"//"#249EDC"//"#E5BD3F"//"#D99522"
+	var geoidsInMap;
+	
+	var root = "data_processed_quarterly_industry/"
+	var file = "102 Service-providing_own5.json"//"1012 Construction_own5.json"//"10 Total, all industries_own5.json"//"10 Total, all industries_own0.json"
+	var threshold = 6
+	//var nationFile = "10 Total, all industries_agg10_own5_quarter4.json"
+	var nationFile = "10 Total, all industries_agg10_own0_quarter4.json"
+	
+	d3.select("#activeColumn").html(colorByColumn+"<br>"+root+file)
+	
+// Load external data and boot
+Promise.all([d3.json("mainland.geojson"),d3.json(root+file),d3.json(root+nationFile)])
+  .then(function(loadData){
+	  
+	  
+		  	var mapData = loadData[0]
+	  
+		  	var quarterlyData = loadData[1]
+	  var nationData = loadData[2]
+	  
+	  var nationAveragesByYearQuarter = makeNationalAverageDict(nationData["US000"])
+	
+	  for(var y = 1990; y<=2021; y++){
+		  var quarter = 4
+		  var step = 10
+		  var domain=[]
+		  var avg = nationAveragesByYearQuarter[y+"_"+quarter][colorByColumn]
+		  if(avg==undefined){
+			  var avg = nationAveragesByYearQuarter[y+"_"+quarter][colorByColumn2]
+		  }
+		  // for(var s =-1; s<=1; s++){
+  // 		  	//console.log(s)
+  // 			 domain.push(avg+s*step)
+  // 		  }
+  // 		  console.log(domain)
+  //
+  //  		 difScale.domain(domain)
+  		//drawMap(quarterlyData, mapData,y+"_"+quarter,avg)
+  		drawMap(quarterlyData, mapData,y+"_"+quarter,threshold)
+	  }	  
+	  
+	  drawScale()
+})
+
+function makeNationalAverageDict(nationData){
+	var formatted = {}
+	for(var y in nationData){
+		//console.log(y)
+		formatted[y]=nationData[y]
+	}
+	return formatted
+}
+
+function drawScale(){
+	var w = 240
+	var h = 60
+	var p = 20
+	var bh = 20
+	var bw = 20
+	var svg = d3.select("#key").append("svg").attr("width",w).attr("height",h)
+	svg.append("rect").attr("width",bw).attr("height",bh).attr("x",bw).attr("y",0).attr("fill",aboveColor)
+	svg.append("rect").attr("width",bw).attr("height",bh).attr("x",bw).attr("y",bh+2).attr("fill",belowColor)
+	
+	svg.append("text").attr("x",bw*2+2).attr("y",bh-2).attr("fill",aboveColor).text("Above or equal to "+threshold+"%")
+	svg.append("text").attr("x",bw*2+2).attr("y",bh*2-2).attr("fill",belowColor).text("Below "+threshold+"%")
+	
+}
+
+function calculateAboveBelow(data,threshold,divName){
+	var above = []
+	var below = []
+	var decrease = []
+	for(var i in data){
+		var wagePctIncrease = parseFloat(data[i]["oty_avg_wkly_wage_pct_chg"])
+		if(wagePctIncrease>=parseFloat(threshold)){
+			above.push(data[i]["fips"])
+		}else if(wagePctIncrease>=0){
+			below.push(data[i]["fips"])
+		}else{
+			decrease.push(data[i]["fips"])
+		}
+	}
+	d3.select("#"+divName).attr("class","explaination")
+	.html("In quarter "+currentQuarter.replace("q","")+", with inflation at "+inflation+"%, "+above.length+" counties had average wage increases that were equalt to or above inflation, while "
+	+below.length+" counties had wages increases that were less than inflation, and "+decrease.length+" counties had lower average weekly wages.")
+}
+
+function formatByFips(data){
+	var formatted = {}
+	for(var i in data){
+		var cData = data[i]
+		var fips = cData["area_fips"]
+		formatted[fips]=cData
+	}
+	return formatted
+}
+
+function drawMap(data, mapData,divName, nationAvg){	
+	//console.log(data)
+	  var w = 200
+	  var h = 150
+	var p = 10
+	const div = d3.select("#charts").append("div").attr("id",divName).attr("class","smallMap")
+	var svg = div.append("svg")
+	  .attr("width",w)
+	  .attr("height",h+p)
+	
+	svg.append("text").text(divName.replace("_"," q")).attr("x",10).attr("y",10).style("font-size","12px")
+	svg.append("text").text("threshold: "+nationAvg).attr("x",10).attr("y",20).style("font-size","12px")
+	
+	
+	// Map and projection
+	const path = d3.geoPath();
+	const projection = d3.geoMercator()
+		.fitSize([w,h],mapData);
+
+	
+//	difScale = d3.scaleLinear().domain(domain).range([bottomColor,"white",topColor])
+
+	
+  svg.append("g")
+    .selectAll("path")
+    .data(mapData.features)
+    .join("path")
+      // draw each country
+      .attr("d", d3.geoPath()
+        .projection(projection)
+      )
+  	.attr("class", function(d){
+  		var state = "path_state_"+d.properties["STATE"]
+  		//console.log(d.properties)
+  		return "countyPath "+state
+  	})
+	.attr("quarter",divName)
+      // set the color of each country
+      .attr("fill", function (d) {
+		  if(divName=="2001_4"){
+		  	return "none"
+		  }
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+		  var countyData = data[fips][divName]
+		  if(countyData!=undefined){
+			  
+			  if(countyData[colorByColumn]!=undefined){
+		  		  var value = parseFloat(countyData[colorByColumn])
+			  }else{
+		  		  var value = parseFloat(countyData[colorByColumn2])
+			  }
+ 		 // console.log(fips)
+			  if(value >= nationAvg){
+			  	return aboveColor
+			  }else{
+			  	return belowColor
+			  }
+		  }
+		 return "#000"
+	})
+	.attr("cursor","pointer")
+	 .attr("stroke","#000")
+	 .attr("stroke-opacity",0)
+	.attr("id",function(d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		return "_"+fips
+	})	
+	.on("click",function(e,d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var pctChg = parseFloat(quarterData[currentQuarter][fips][colorByColumn])
+		inflation = pctChg
+		recolorForNewInflation()
+		//console.log(pctChg)
+		
+	})
+	.on("mouseover",function(e,d){
+		//console.log(d)
+		d3.select(this).style("stroke-opacity",1)
+		var county = d.properties.NAME
+		var stateName = numberToState[d.properties.STATE]
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var popupString = county+" County, "+stateName
+		
+		var state = "state_"+d.properties["STATE"]
+
+		var dataString = ""
+		if(data[fips]!=undefined){
+			var countyData = data[fips][divName]
+			for(var c in countyData){
+					dataString+=c+": "+countyData[c]+"<br>"
+			}
+			
+		}
+		
+		popupString+=dataString
+
+	    var posX = e.clientX;
+	    var posY = e.clientY;
+		
+		
+		d3.select("#popup").html(popupString)
+		.style("left",posX+20+"px")
+		.style("top",posY+"px")
+		.style("display","block")
+		
+		d3.selectAll(".countyDot").attr("opacity",0)
+		d3.selectAll(".dot_"+state).attr("opacity",.2)
+		d3.selectAll("#_"+fips).attr("opacity",1)
+		
+		//console.log(state)
+		d3.selectAll("#"+state).attr("stroke-opacity",.2)
+		
+	})
+	.on("mouseout",function(e,d){
+		d3.select(this).style("stroke-opacity",0)
+		d3.selectAll(".countyDot").attr("opacity",1)
+		d3.selectAll(".countyPath").attr("stroke-opacity",0)
+		
+		d3.selectAll(".statePath").attr("stroke-opacity",0)
+		d3.select("#popup").style("display","none")
+		d3.selectAll("#stateLabel").text("All counties")
+		
+	})
+	
+
+}
+
+
+
+</script>

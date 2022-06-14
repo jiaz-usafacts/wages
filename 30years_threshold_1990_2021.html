@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="stateFipsDict.js"></script> 
+<style>
+	body{
+		font-size:12px;
+		font-family: 'Open Sans', sans-serif;
+		font-weight:100;
+	}
+	p{
+		width:400px;
+	}
+	#popup{
+		position:fixed;
+		background-color:rgba(255,255,255,.8);
+		border:1px solid black;
+		font-size:11px;
+		padding:10px;
+		display:none;
+		z-index:3;
+	}
+	#key{
+		font-size:12px;
+		display:inline-block;
+
+	}
+	
+#info{
+	background-color:#fff;
+	z-index:2;
+}
+#charts{
+	z-index:1;
+	font-size:12px;
+}
+.quarter{
+	width:800px;
+}
+.qButton{
+	display:inline-block;
+	width:120px;
+	border:1px solid black;
+	padding:3px;
+	text-align:center;
+	cursor:pointer;
+}
+#quarterControl{
+	font-size:12px;
+}	
+
+.smallMap{
+	display:inline-block;
+}
+
+
+</style>
+<!-- Create an element where the map will take place -->
+<div id="info">
+	
+	QCEW data from BLS / All Industry/All Sizes/All Ownerships
+	<!-- <div id="buttons"></div>
+	<div id="activeColumn"></div> -->
+</div>
+		<div id="key"></div>
+		
+
+<div id="popup"></div>
+<div id="charts">
+</div>
+
+<script>
+
+var colorByColumn = "oty_annual_avg_wkly_wage_pct_chg"
+//var colorByColumn = "oty_annual_avg_emplvl_pct_chg"
+var threshold = 5
+var aboveColor = "#00906E"
+var belowColor = "#eee"
+	
+	d3.select("#info").html(colorByColumn)
+
+
+var testScale = d3.scaleThreshold().domain([-10,-5,0,5,10,15])
+	.range(["#eee","#eee","#eee","#eee","#00906E","#00906E","#00906E"])
+	.range(["#eee","#eee","#eee","#eee","#249EDC","#249EDC","#249EDC"])
+	.range(["#eee","#eee","#eee","#eee","#A56EFF","#A56EFF","#A56EFF"])
+	//.range(["#eee","#eee","#eee","#eee","#5CB79A","#00906E","#004837"])
+	//.range(["#ddd","#eee","#eee","#eee","#5CB79A","#00906E","#004837"])
+//	.range(["#E5BD3F","#F2E289","#eee","#5CB79A","#00906E","#004837"])
+
+	//.range(["#D99522","#E5BD3F","#F2E289","#eee","#eee","#eee"])
+	//.range(["#E5BD3F","#E5BD3F","#E5BD3F","#eee","#eee","#eee"])
+
+var kw = 300
+	var kh =60
+	var square = 30
+var keySvg = d3.select("#key").append("svg").attr("width",kw).attr("height",kh)
+keySvg.selectAll(".keyRect").data(testScale.range()).enter().append("rect")
+	.attr("width",square).attr("height",square)
+	.attr("x",function(d,i){return i*square}).attr("y",square)
+	.attr("fill",function(d){return d})
+	
+keySvg.selectAll(".keyLabel").data(testScale.domain()).enter().append("text")
+	.attr("x",function(d,i){return (i+1)*square}).attr("y",square-2)
+	.attr("fill",function(d){return d})
+	.text(function(d){return d+"%"})
+	.attr("text-anchor","middle")
+
+
+// Load external data and boot
+Promise.all([d3.json("mainland.geojson"),d3.json("data_processed_annual_industry/10 Total, all industries_agg70_own0.json")])
+  .then(function(loadData){
+	  
+	//  console.log(loadData)
+	  
+		  	var mapData = loadData[0]
+	  var annualData = loadData[1]
+	  
+	  for(var y = 1992; y<=2021; y++){
+	  		drawMap(annualData, mapData,y+"_A")
+	  	
+	  }
+	  
+	  
+})
+
+
+function calculateAboveBelow(data,threshold,divName){
+	var above = []
+	var below = []
+	var decrease = []
+	for(var i in data){
+		var wagePctIncrease = parseFloat(data[i]["oty_avg_wkly_wage_pct_chg"])
+		if(wagePctIncrease>=parseFloat(threshold)){
+			above.push(data[i]["fips"])
+		}else if(wagePctIncrease>=0){
+			below.push(data[i]["fips"])
+		}else{
+			decrease.push(data[i]["fips"])
+		}
+	}
+	d3.select("#"+divName).attr("class","explaination")
+	.html("In quarter "+currentQuarter.replace("q","")+", with inflation at "+inflation+"%, "+above.length+" counties had average wage increases that were equalt to or above inflation, while "
+	+below.length+" counties had wages increases that were less than inflation, and "+decrease.length+" counties had lower average weekly wages.")
+}
+
+function formatByFips(data){
+	var formatted = {}
+	for(var i in data){
+		var cData = data[i]
+		var fips = cData["area_fips"]
+		formatted[fips]=cData
+	}
+	return formatted
+}
+
+
+function drawMap(data, mapData,divName){
+	console.log(divName)
+	console.log(data)
+	
+	  var w = 200
+	  var h = 160
+	const div = d3.select("#charts").append("div").attr("id",divName).attr("class","smallMap")
+	var svg = div.append("svg")
+	  .attr("width",w)
+	  .attr("height",h)
+	
+	svg.append("text").text(divName.replace("_A","")).attr("x",10).attr("y",10).style("font-size","12px")
+	
+	// Map and projection
+	const path = d3.geoPath();
+	const projection = d3.geoMercator()
+		.fitSize([w,h],mapData);
+
+	
+	var maxDif = d3.max(mapData.features,function(d){
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+	  if(data[fips]!=undefined){
+		  return parseFloat(data[fips][colorByColumn])
+	  }
+	})
+	var minDif = d3.min(mapData.features,function(d){
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+	  if(data[fips]!=undefined){
+		  return parseFloat(data[fips][colorByColumn])
+	  }else{
+	  //	console.log("NOT",fips)
+	  }
+	})
+	
+  svg.append("g")
+    .selectAll("path")
+    .data(mapData.features)
+    .join("path")
+      // draw each country
+      .attr("d", d3.geoPath()
+        .projection(projection)
+      )
+  	.attr("class", function(d){
+  		var state = "path_state_"+d.properties["STATE"]
+  		//console.log(d.properties)
+  		return "countyPath "+state
+  	})
+	.attr("quarter",divName)
+      // set the color of each country
+      .attr("fill", function (d) {
+		  var fips = d.properties["GEO_ID"].split("US")[1]
+		  
+		 // var testScale = d3.scaleThreshold().domain([-20,5,10,15]).range(["#eee","#eee","#5CB79A","#00906E","#004837"])
+		  
+		  if(data[fips]!=undefined){
+			  if(data[fips][divName]!=undefined){
+		  		var value = parseFloat(data[fips][divName][colorByColumn])
+				  
+				  return testScale(value)
+				  
+				  // if(value>=threshold+2){
+// 				  	return "#5CB79A"
+//
+// 				  }else if (value>threshold){
+// 				  	return "#00906E"
+// 				  }else{
+// 				  	return  belowColor
+// 				  }
+				
+			  }else{
+				  console.log(fips+" not this year")
+			  	return "#fff"
+			  	
+			  }
+			  
+			 // return difScale(data[fips][colorByColumn])
+		  }else{
+				  console.log(fips+" not this dataset")
+			  	return "#fff"
+		  }
+	})
+	.attr("cursor","pointer")
+	 .attr("stroke","#000")
+	 .attr("stroke-opacity",0)
+	.attr("id",function(d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		return "_"+fips
+	})	
+	.on("click",function(e,d){
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var pctChg = parseFloat(quarterData[currentQuarter][fips][colorByColumn])
+		inflation = pctChg
+		recolorForNewInflation()
+		//console.log(pctChg)
+		
+	})
+	.on("mouseover",function(e,d){
+		//console.log(d)
+		d3.select(this).style("stroke-opacity",1)
+		var county = d.properties.NAME
+		var stateName = numberToState[d.properties.STATE]
+		var fips = d.properties["GEO_ID"].split("US")[1]
+		var popupString = county+" County, "+stateName
+		
+		var state = "state_"+d.properties["STATE"]
+
+		
+		var dataString = ""
+	  if(data[fips]!=undefined){
+		  if(data[fips][divName]!=undefined){
+			  console.log(data[fips][divName])
+			  for(var c in data[fips][divName]){
+			  	dataString+=c+": "+data[fips][divName][c]+"<br>"
+			  }
+			  
+		  }
+	  }
+	  popupString+="<br>"+dataString
+		
+
+	    var posX = e.clientX;
+	    var posY = e.clientY;
+		
+		
+		d3.select("#popup").html(popupString)
+		.style("left",posX+20+"px")
+		.style("top",posY+"px")
+		.style("display","block")
+		
+		d3.selectAll(".countyDot").attr("opacity",0)
+		d3.selectAll(".dot_"+state).attr("opacity",.2)
+		d3.selectAll("#_"+fips).attr("opacity",1)
+		
+		//console.log(state)
+		d3.selectAll("#"+state).attr("stroke-opacity",.2)
+		
+	})
+	.on("mouseout",function(e,d){
+		d3.select(this).style("stroke-opacity",0)
+		d3.selectAll(".countyDot").attr("opacity",1)
+		d3.selectAll(".countyPath").attr("stroke-opacity",0)
+		
+		d3.selectAll(".statePath").attr("stroke-opacity",0)
+		d3.select("#popup").style("display","none")
+		d3.selectAll("#stateLabel").text("All counties")
+		
+	})
+	
+
+}
+
+
+
+</script>

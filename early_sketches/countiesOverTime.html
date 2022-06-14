@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v6.js"></script>
+<script src="stateFipsDict.js"></script>
+<style>
+	body{
+		font-size:16px;
+		font-family: 'Open Sans', sans-serif;
+		font-weight:100;
+	}
+	p{
+		width:400px;
+	}
+	#popup{
+		position:fixed;
+		background-color:rgba(255,255,255,.8);
+		border:1px solid black;
+		font-size:11px;
+		padding:10px;
+		display:none;
+		z-index:3;
+	}
+	#key{
+		font-size:12px;
+		display:inline-block;
+		margin:10px;
+	}
+	#grad {
+		display:inline-block;
+		width:400px;
+		height:10px;
+		padding-bottom:5px;
+	  background-image: linear-gradient(90deg, magenta, #fff,cyan);
+    text-align: center;
+     text-justify: inter-word;
+}
+#info{
+	border-bottom:1px solid black;
+	position:fixed;
+	width:100%;
+	background-color:#fff;
+	z-index:2;
+	top:0px;
+	left:0px;
+	padding:10px;
+}
+#charts{
+	margin-top:100px;
+	position:absolute;
+	z-index:1;
+	font-size:12px;
+	border:1px solid black;
+}
+.quarter{
+	width:800px;
+}
+.qButton{
+	display:inline-block;
+	width:200px;
+	border:1px solid black;
+	padding:3px;
+	text-align:center;
+	cursor:pointer;
+}
+#quarterControl{
+	font-size:12px;
+	
+}	
+
+</style>
+<!-- Create an element where the map will take place -->
+<div id="info">
+	QCEW data / BLS / <strong>% change in average weekly wages by quarter</strong> / all quarters
+	
+</div>
+<div id="ranking">Your county</div>
+
+<div id="popup"></div>
+<div id="charts">
+	
+</div>
+<script>
+	
+var ownership = "0"
+
+Promise.all([d3.json("mainland.geojson"),
+	d3.csv("2021_1_own"+ownership+"_allInd.csv"),
+	d3.csv("2021_2_own"+ownership+"_allInd.csv"),
+	d3.csv("2021_3_own"+ownership+"_allInd.csv"),
+	d3.json("states.json")
+	])
+  .then(function(loadData){
+	  
+	  var q1 = loadData[1]
+	  var q2 = loadData[2]
+	  var q3 = loadData[3]
+	  
+	  drawScatter([q1,q2,q3])
+	//combineData(q1,q2,q3)
+})
+
+function combineData(data){
+	//console.log(data)
+	var q1ByFips = formatByFips(data[0])
+	var q2ByFips = formatByFips(data[1])
+	var q3ByFips = formatByFips(data[2])
+	var formatted = {}
+	for(var i in q1ByFips){
+		var fips = i
+		var aww2021 = [
+				parseFloat(q1ByFips[i]["avg_wkly_wage"]),
+				parseFloat(q2ByFips[i]["avg_wkly_wage"]),
+				parseFloat(q3ByFips[i]["avg_wkly_wage"])
+		]
+		var aww2020 = [
+			parseInt(q1ByFips[i]["avg_wkly_wage"])-parseInt(q1ByFips[i]["oty_avg_wkly_wage_chg"]),
+			parseInt(q2ByFips[i]["avg_wkly_wage"])-parseInt(q2ByFips[i]["oty_avg_wkly_wage_chg"]),
+			parseInt(q3ByFips[i]["avg_wkly_wage"])-parseInt(q3ByFips[i]["oty_avg_wkly_wage_chg"])
+		]
+		formatted[fips]={year2020:aww2020,year2021:aww2021}
+	}
+	return formatted
+}
+
+function drawScatter(data){
+	var w = 1200
+	var h = 2000
+	var p = 50
+
+	var dots = combineData(data)
+	var maxAww = d3.max(Object.keys(dots),function(d){
+		var allAww = dots[d].year2020.concat(dots[d].year2021)
+		var countyMax = d3.max(allAww,function(e){return e})
+		return countyMax
+	})
+	var minAww = d3.min(Object.keys(dots),function(d){
+		var allAww = dots[d].year2020.concat(dots[d].year2021)
+		var countyMin = d3.min(allAww,function(e){return e})
+		return countyMin
+	})
+
+	var svg = d3.select("#charts").append("svg").attr("width",w).attr("height",h)
+
+	var count = 0
+	
+	for(var i in dots){
+		//console.log(i)
+		var dot = dots[i]
+		var allAww = dot.year2020.concat(dot.year2021)
+		var countyMin = d3.min(allAww,function(e){return e})
+		var countyMax = d3.max(allAww,function(e){return e})
+		//console.log(countyMin,countyMax)
+		var yScale = d3.scaleLinear().domain([countyMin, countyMax]).range([40,0])
+		
+		drawYearDots(count,i,"2020",dot.year2020,dot.year2021,svg,yScale,"#000")
+		//drawYearDots(count,i,"2021",dot.year2021,svg,yScale,"#000",2)
+		
+		count +=1
+		
+		if(count>100){break}
+	}
+	
+}
+
+function drawYearDots(count,fips,year,year1,year2,svg,yScale,color){
+	var offsetX = count%10
+	var offsetY = Math.floor(count/10)
+	var m = 40
+	var mX = 10
+	var grid = 100
+	
+	var g = svg.append("g")
+	.attr("transform","translate("+(offsetX*grid)+","+(offsetY*grid)+")")
+	
+	var points1 = []
+	for(var p in year1){
+		points1.push([parseInt(p)*mX+m,yScale(year1[p])+m])
+	}
+	var points2 = []
+	for(var p in year1){
+		points2.push([parseInt(p)*mX+m,yScale(year2[p])+m])
+	}
+	var line = d3.line()	
+	
+	var changes = []
+	for(var p in year1){
+		var p1 = year1[p]
+		var p2 = year2[p]
+		var changeLine = [[parseInt(p)*mX+m,yScale(p1)+m],[p*mX+m,yScale(p2)+m]]
+		g.append("path").attr("fill","none").attr("stroke","#000")
+		.attr("d", line(changeLine));
+	}	
+	
+	 g.append("path").attr("fill","cyan").attr("opacity",.5)
+	     .attr("d", line(points1.concat(points2.reverse())));
+	
+	g.selectAll("._year1"+fips)
+	.data(year1)
+	.enter()
+	.append("circle")
+	.attr("class","dot _"+year+fips)
+	.attr("r",2)
+	.attr("cx",function(d,i){
+		return i*mX+m
+	})
+	.attr("cy",function(d,i){
+		return yScale(d)+m
+	})
+	.attr("fill",color)
+	
+	g.selectAll("._year2"+fips)
+	.data(year2)
+	.enter()
+	.append("circle")
+	.attr("class","dot _"+year+fips)
+	.attr("r",3)
+	//.attr("opacity",.2)
+	.attr("cx",function(d,i){
+		return i*mX+m
+	})
+	.attr("cy",function(d,i){
+		return yScale(d)+m
+	})
+	.attr("fill",color)
+	
+	
+	
+}
+
+function formatByFips(data){
+	var formatted = {}
+	for(var i in data){
+		var cData = data[i]
+		var fips = cData.fips
+		formatted[fips]=cData
+	}
+	return formatted
+}
+
+
+
+</script>
