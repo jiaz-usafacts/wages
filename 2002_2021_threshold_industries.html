@@ -5,7 +5,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,500;0,600;1,300&display=swap" rel="stylesheet">
-<script src="https://d3js.org/d3.v6.js"></script>
+<script src="d3.js"></script>
 <script src="stateFipsDict.js"></script> 
 <script src="colorChange.js"></script> 
 <style>
@@ -61,6 +61,10 @@
 </div>
 <div id="buttons"></div>
 		<div id="key"></div>
+		<div id="notes">Notes:
+		<div id="higherLower">Higher or lower thresholds</div>
+		<div id="specialCounties">special counties</div>
+		</div>
 		
 
 <div id="popup"></div>
@@ -68,6 +72,7 @@
 </div>
 
 <script>
+	
 
 var industryFiles = ["2002_2021_10 Total all industries.json",
 "2002_2021_101 Goods-producing.json",
@@ -75,7 +80,7 @@ var industryFiles = ["2002_2021_10 Total all industries.json",
 "2002_2021_1012 Construction.json",
 "2002_2021_1013 Manufacturing.json",
 "2002_2021_102 Service-providing.json",
-"2002_2021_1021 Trade transportation and utilities_own.json",
+"2002_2021_1021 Trade transportation and utilities.json",
 "2002_2021_1022 Information.json",
 "2002_2021_1023 Financial activities.json",
 "2002_2021_1024 Professional and business services.json",
@@ -122,15 +127,7 @@ var testScale = d3.scaleThreshold().domain([-15,-5,0,5,15,25])
 	.range(["#eee","#eee","#eee","#eee","#249EDC","#249EDC","#249EDC"])
 	.range(["#eee","#eee","#eee","#eee","#A56EFF","#A56EFF","#A56EFF"])
 	.range(["#eee","#eee","#eee","#eee","#5CB79A","#00906E","#004837"])
-	.range(["#CC6A19",
-//"#D99522",
-"#E5BD3F",
-"#F2E289",
-"#F1F1F1",
-"#97DFC7",
-//"#5CB79A",
-"#00906E",
-"#004837"])
+	.range(["#CC6A19","#E5BD3F","#F2E289","#F1F1F1","#97DFC7","#00906E","#004837"])
 	//.range(["#ddd","#eee","#eee","#eee","#5CB79A","#00906E","#004837"])
 //	.range(["#E5BD3F","#F2E289","#eee","#5CB79A","#00906E","#004837"])
 
@@ -138,8 +135,8 @@ var testScale = d3.scaleThreshold().domain([-15,-5,0,5,15,25])
 	//.range(["#E5BD3F","#E5BD3F","#E5BD3F","#eee","#eee","#eee"])
 
 var kw = 300
-	var kh =60
-	var square = 30
+var kh =60
+var square = 30
 var keySvg = d3.select("#key").append("svg").attr("width",kw).attr("height",kh)
 keySvg.selectAll(".keyRect").data(testScale.range()).enter().append("rect")
 	.attr("width",square).attr("height",square)
@@ -152,16 +149,12 @@ keySvg.selectAll(".keyLabel").data(testScale.domain()).enter().append("text")
 	.text(function(d){return d+"%"})
 	.attr("text-anchor","middle")
 
-
-var file = "1990_2021_10 Total, all industries_own5_agg71_s.json"
-//	var file = "1990_2021_101 Goods-producing_own5_agg72.json"
-	//var file = "1990_2021_102 Service-providing_own5_agg72.json"
-	
-	
 	function redoAll(industryFile){
-	
 		
-		 Promise.all([d3.json("mainland.geojson"),d3.json("data_processed_annual_industry_s/"+industryFile)])
+		var nationalFile = industryFile.replace(".json","_national.json")
+		
+		 Promise.all([d3.json("mainland.geojson"),d3.json("data_processed_annual_industry_s/"+industryFile)
+		,d3.json("data_processed_annual_industry_national/"+nationalFile)])
 	    .then(function(loadData){
 			d3.select("#info").html(industryFile+" / "+colorByColumn)
 		var industry = industryFiles[ind].split("_")[2]
@@ -174,16 +167,113 @@ var file = "1990_2021_10 Total, all industries_own5_agg71_s.json"
 	  		  	var mapData = loadData[0]
 	  	  var annualData = formatByFips(loadData[1])
 	  
+	  var nationalData = loadData[2][0]
+			//console.log(nationalData)
+			
 	  	  for(var y = 2002; y<=2021; y++){
 	  	  		drawMap(annualData, mapData,y)
+			  d3.select("#_"+y).append("div").html("<strong>Nationwide average oty % change "+nationalData[y]+"</strong><br>")
 	  	
 	  	  }
 	  
+			makeNotes(annualData)
 	  
 	  })
 	}
 	
-redoAll(industryFiles[0])
+	redoAll(industryFiles[0])
+	
+	function formatAnnualNationalByYear(data){
+		var formatted = {}
+		for(var i in data){
+			var year = data[i].year
+			formatted[year]=parseFloat(data[i]["oty_annual_avg_wkly_wage_pct_chg"])
+		}
+		return formatted
+	}
+	
+	
+	function makeNotes(data){
+		displayThresholdCounts(yearThresholdCounts(data,-15),-15)
+		displayThresholdCounts(yearThresholdCounts(data,-5),-5)
+		displayThresholdCounts(yearThresholdCounts(data,0),0)
+		displayThresholdCounts(yearThresholdCounts(data,5),5)
+		displayThresholdCounts(yearThresholdCounts(data,15),15)
+
+		
+		var countyOverTimeData = countyOverTime(data)
+		
+	}
+	function displayThresholdCounts(yearlyData,threshold){
+		for(var y in yearlyData){
+		d3.select("#_"+y).append('div').html("<strong>threshold at "+threshold+"%<br>")
+			var notesDiv = d3.select("#_"+y).append('div').style("margin-bottom","20px")
+			//notesDiv.append(yearlyData[y])
+		//	console.log(yearlyData[y])
+			var higher = yearlyData[y].higher.length
+			var lower = yearlyData[y].lower.length
+			var total = yearlyData[y].totalCounty
+			var higherPct = Math.round(higher/total*100)
+			var lowerPct = Math.round(lower/total*100)
+			//console.log(y,threshold, yearlyData[y].lower)
+			
+			
+			notesDiv.html("higher: "+higher
+			+"("+higherPct+"%) <br> "
+			+"lower: "+lower+"("+lowerPct+"%)<br>"+"total*:"+total)
+		}
+	}
+	function countyOverTime(data){
+		var byCounty = {}
+		for(var i in data){
+		//	console.log(data[i])
+			byCounty[i]={}
+			byCounty[i]["higher"]=0
+			byCounty[i]["lower"]=0
+			for(var y in data[i]){
+				if(y!="fips" &&data[i][y]>0){
+					byCounty[i]["higher"]+=1
+				}else{
+					byCounty[i]["lower"]+=1
+				}
+			}
+			
+		}
+	}
+
+	function yearThresholdCounts(data,threshold){
+		
+		var byYear = {}
+		var counties = []
+		for(var y = 2002; y<=2021; y++){
+			byYear[y]={}
+			byYear[y]["higher"]=[]
+			byYear[y]["lower"]=[]
+			byYear[y]["totalCounty"]=0
+			for(var i in data){
+				var value = data[i][y]
+				var fips = data[i]["fips"]
+				var state = fips.slice(0,2)
+				if(Object.keys(numberToState).indexOf(state)>-1){
+					 counties.push(fips)
+					if(value!=undefined){
+						byYear[y]["totalCounty"]+=1
+						if(parseFloat(value)>=threshold){
+							byYear[y]["higher"].push(fips)
+						}else{
+							byYear[y]["lower"].push(fips)
+						}
+					}
+				}else{
+					//console.log(state)
+					
+				}
+				
+			}	
+		}
+		
+		return byYear
+	}
 
 function formatByFips(data){
 	var formatted = {}
@@ -200,8 +290,8 @@ function drawMap(data, mapData,year){
 	// console.log(divName)
 // 	console.log(data)
 //
-	  var w = 220
-	  var h = 140
+	  var w = 300
+	  var h = 200
 	const div = d3.select("#charts").append("div").attr("id","_"+year).attr("class","smallMap")
 	var svg = div.append("svg")
 	  .attr("width",w)
