@@ -194,6 +194,8 @@ keySvg.selectAll(".keyLabel").data(testScale.domain()).enter().append("text")
 	
 	
 	function makeNotes(data){
+		displayThresholdCounts(yearThresholdCounts(data,6.5),6.5)
+		
 		displayThresholdCounts(yearThresholdCounts(data,-15),-15)
 		displayThresholdCounts(yearThresholdCounts(data,-5),-5)
 		displayThresholdCounts(yearThresholdCounts(data,0),0)
