@@ -297,7 +297,7 @@ keySvg.selectAll(".keyLabel").data(testScale.domain()).enter().append("text")
 				
 			}	
 		}
-		console.log(byYear)
+		//console.log(byYear)
 		return byYear
 	}
 
@@ -400,14 +400,14 @@ function drawMap(data, mapData,year){
 		var fips = d.properties["GEO_ID"].split("US")[1]
 		return "_"+fips
 	})	
-	.on("click",function(e,d){
-		var fips = d.properties["GEO_ID"].split("US")[1]
-		var pctChg = parseFloat(quarterData[currentQuarter][fips][year])
-		inflation = pctChg
-		recolorForNewInflation()
-		//console.log(pctChg)
-		
-	})
+	// .on("click",function(e,d){
+// 		var fips = d.properties["GEO_ID"].split("US")[1]
+// 		var pctChg = parseFloat(quarterData[currentQuarter][fips][year])
+// 		inflation = pctChg
+// 		recolorForNewInflation()
+// 		//console.log(pctChg)
+//
+// 	})
 	.on("mouseover",function(e,d){
 		//console.log(d)
 		d3.select(this).style("stroke-opacity",1)
